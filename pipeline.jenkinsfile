@@ -24,7 +24,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'grep -q "Goodbye" dist/index.html && echo "Tests passed"'
+                sh 'grep -q "Hello Jenkins" dist/index.html && echo "Tests passed"'
             }
         }
 

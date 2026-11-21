@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'day1-app'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Pretend we cloned the code for ${env.APP_NAME}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh '''
+                    mkdir -p dist
+                    echo "<h1>Hello Jenkins</h1>" > dist/index.html
+                    echo "build=${BUILD_NUMBER}" > dist/build-info.txt
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'grep -q "Hello Jenkins" dist/index.html && echo "Tests passed"'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                archiveArtifacts artifacts: 'dist/**', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build ${env.BUILD_NUMBER} succeeded"
+        }
+        failure {
+            echo "Build ${env.BUILD_NUMBER} FAILED"
+        }
+        always {
+            echo "Pipeline finished"
+        }
+    }
+}

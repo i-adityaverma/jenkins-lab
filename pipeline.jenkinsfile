@@ -1,30 +1,41 @@
 pipeline {
     agent any
 
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        timeout(time: 5, unit: 'MINUTES')
+    }
+
+    parameters {
+        choice(
+            name: 'TARGET_ENV',
+            choices: ['dev', 'qa', 'prod'],
+            description: 'Where to deploy'
+        )
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Run test.sh?'
+        )
+    }
+
     environment {
         APP_NAME = 'day1-app'
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                echo "Pretend we cloned the code for ${env.APP_NAME}"
-            }
-        }
-
         stage('Build') {
             steps {
-                sh '''
-                    mkdir -p dist
-                    echo "<h1>Hello Jenkins</h1>" > dist/index.html
-                    echo "build=${BUILD_NUMBER}" > dist/build-info.txt
-                '''
+                sh 'bash build.sh'
             }
         }
 
         stage('Test') {
+            when {
+                expression { params.RUN_TESTS }
+            }
             steps {
-                sh 'grep -q "Hello Jenkins" dist/index.html && echo "Tests passed"'
+                sh 'bash test.sh'
             }
         }
 
@@ -33,17 +44,21 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/**', fingerprint: true
             }
         }
+
+        stage('Deploy') {
+            steps {
+                echo "Deploying ${env.APP_NAME} #${env.BUILD_NUMBER}"
+                echo "Target environment: ${params.TARGET_ENV}"
+            }
+        }
     }
 
     post {
         success {
-            echo "Build ${env.BUILD_NUMBER} succeeded"
+            echo 'Pipeline succeeded'
         }
         failure {
-            echo "Build ${env.BUILD_NUMBER} FAILED"
-        }
-        always {
-            echo "Pipeline finished"
+            echo 'Pipeline failed - open the red stage logs'
         }
     }
 }

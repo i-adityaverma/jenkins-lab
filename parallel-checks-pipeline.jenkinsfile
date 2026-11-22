@@ -1,0 +1,41 @@
+pipeline {
+    agent none
+    options {
+        timeout(time: 15, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+    stages {
+        stage('CI') {
+            agent any
+            stages {
+                stage('Build') {
+                    steps {
+                        sh 'mkdir -p dist'
+                        sh 'echo "<h1>Hello Jenkins</h1>" > dist/index.html'
+                        stash name: 'site', includes: 'dist/**'
+                    }
+                }
+                stage('Quality checks') {
+                    failFast true
+                    parallel {
+                        stage('HTML test') {
+                            steps {
+                                sh 'grep -q "Hello Jenkins" dist/index.html && echo "HTML OK"'
+                            }
+                        }
+                        stage('Size check') {
+                            steps {
+                                sh 'test $(wc -c < dist/index.html) -lt 10000 && echo "Size OK"'
+                            }
+                        }
+                        stage('Lint') {
+                            steps {
+                                sh 'grep -q "<h1>" dist/index.html && echo "Lint OK"'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -37,5 +37,25 @@ pipeline {
                 }
             }
         }
+        stage('Release') {
+            input {
+                message 'Release this build?'
+                ok 'Approve'
+                parameters {
+                    string(name: 'APPROVER_NOTE', defaultValue: 'Looks good',
+                        description: 'Why are you approving?')
+                }
+            }
+            agent any
+            steps {
+                unstash 'site'
+                echo "Approved with note: ${APPROVER_NOTE}"
+                archiveArtifacts artifacts: 'dist/**'
+            }
+        }
+    }
+    post {
+        aborted { echo 'Release was not approved' }
+        success { echo "Build ${BUILD_NUMBER} released" }
     }
 }

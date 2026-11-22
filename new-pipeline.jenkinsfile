@@ -28,17 +28,7 @@ pipeline {
             }
         }
         stage("Security and QA") {
-            parallel{
-                stage("testing"){
-                    steps {
-                        sh '''
-                            ls -al
-                            pwd
-                            whoami
-                        '''
-                    }
-                }
-            parallel{
+            parallel {
                 stage("testing"){
                     steps {
                         sh '''

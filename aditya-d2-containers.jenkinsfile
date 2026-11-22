@@ -1,0 +1,30 @@
+pipeline {
+    agent none
+    options {
+        timeout(time: 10, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+    stages {
+        stage('Python stage') {
+            agent { docker { image 'python:3.12-alpine' } }
+            steps {
+                sh 'python --version'
+                sh 'python -c "print(\'Sum of 1..10 =\', sum(range(1, 11)))"'
+                sh 'cat /etc/os-release | head -2'
+            }
+        }
+        stage('Node stage') {
+            agent { docker { image 'node:20-alpine' } }
+            steps {
+                sh 'node --version'
+                sh 'node -e "console.log([1, 2, 3].map(x => x * 2))"'
+            }
+        }
+        stage('Back on the host') {
+            agent any
+            steps {
+                sh 'node --version || echo "node is NOT installed on the Jenkins host"'
+            }
+        }
+    }
+}

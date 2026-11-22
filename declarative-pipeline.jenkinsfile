@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+    options {
+        timeout(time: 5, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        timestamps()
+        disableConcurrentBuilds()
+    }
+    parameters {
+        choice(name: 'TARGET_ENV', choices: ['dev', 'qa', 'prod'],
+            description: 'Where to deploy')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true,
+            description: 'Run the Test stage?')
+        string(name: 'GREETING', defaultValue: 'Hello Jenkins',
+            description: 'Text the app must contain')
+    }
+    environment {
+        APP_NAME = 'day2-app'
+        VERSION = "1.0.${BUILD_NUMBER}"
+    }
+    stages {
+        stage('Info') {
+            steps {
+                echo "Building ${APP_NAME} ${VERSION} for ${params.TARGET_ENV}"
+                sh 'printenv | grep -E "^(APP_NAME|VERSION|BUILD_NUMBER)="'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mkdir -p dist'
+                sh 'echo "$GREETING from $APP_NAME $VERSION" > dist/version.txt'
+            }
+        }
+        stage('Test') {
+            when { expression { params.RUN_TESTS } }
+            steps {
+                sh 'grep -q "Hello Jenkins" dist/version.txt && echo "Tests passed"'
+            }
+        }
+        stage('Deploy to prod') {
+            when { expression { params.TARGET_ENV == 'prod' } }
+            steps {
+                echo "Deploying ${VERSION} to PRODUCTION"
+            }
+        }
+    }
+    post {
+        success { echo "SUCCESS: ${APP_NAME} ${VERSION}" }
+        failure { echo 'FAILURE: open the red stage to see why' }
+        fixed { echo 'FIXED: the pipeline is green again' }
+        always {
+            archiveArtifacts artifacts: 'dist/**', allowEmptyArchive: true
+            cleanWs()
+        }
+    }
+}
